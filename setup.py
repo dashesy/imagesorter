@@ -14,9 +14,9 @@ setup(
     url='https://github.com/dashesy/imagesorter',
     author='Ehsan Azar',
     author_email='dashesy@gmail.com',
-    license='BSD',
+    license='BSD 2 clause',
     classifiers=[
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: BSD License',
         'Programming Language :: Python :: 3.6'
     ],
     keywords='imagesorter featurizer image similarity',

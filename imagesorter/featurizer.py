@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 from PIL import Image
@@ -15,6 +14,6 @@ class Featurizer(nn.Module):
 
     def forward(self, path: str):
         img = Image.open(path).convert("RGB")
-        img = self.transforms(img).unsqueeze(0)
+        img = self.transform(img).unsqueeze(0)
         return img
 
