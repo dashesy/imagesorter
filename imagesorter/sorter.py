@@ -47,14 +47,13 @@ def sort(srcdir: str) -> list[str]:
         assert max2_idx is not None
         found = False
         step = 1 if max2_idx > max_idx else -1
-        max2_idx = 0 if step < 0 else len(sorted)
+        max2_idx = 0 if step < 0 else len(sorted) - 1
         for ii in range(max_idx, max2_idx, step):
             if sims[(sorted[ii], sorted[ii + step])] < sims[(sorted[ii], src)]:
                 sorted.insert((ii + step) if step > 0 else ii, src)
                 found = True
                 break
         if not found:
-            boz
-            sorted.insert(max2_idx, src)
+            sorted.insert(0 if step < 0 else len(sorted), src)
     
     return sorted
