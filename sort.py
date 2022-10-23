@@ -10,12 +10,13 @@ def main(srcdir: str, dstdir: str):
         return
     os.makedirs(dstdir, exist_ok=True)
     length = len(str(len(sorted)))
-    with open(op.join(dstdir, "sorted.txt"), "w") as wfp:
+    max_src_length = max([len(fname) for fname in [op.basename(fname) for fname in sorted]])
+    with open(op.join(dstdir, "sorted.csv"), "w") as wfp:
         for ii in range(len(sorted)):
             src = sorted[ii]
-            ext = op.splitext(src)[1]
-            dst = str(ii).rjust(length, '0') + ext
-            print(f"{src}\t{dst}", file=wfp)
+            ext = op.basename(src).rjust(max_src_length, "-")
+            dst = str(ii).rjust(length, '0') + "-"+ ext
+            print(f"{src},{dst}", file=wfp)
             shutil.copy(src, op.join(dstdir, dst))
     
 
