@@ -1,4 +1,3 @@
-import imp
 import torch
 import torch.nn as nn
 import os
@@ -28,10 +27,13 @@ def sort(srcdir: str) -> list[str]:
             # add the first two
             sorted.append(src)
             continue
+        if len(sorted) == 2:
+            sims[(sorted[0], sorted[1])] = sims[(sorted[1], sorted[0])] = sim(features[sorted[0]], features[sorted[1]])
         # got through previously sorted, and find the top-2 most similar
         max_sim = None
         max_idx = None
         max2_idx = None
+        max2_sim = None
         for ii, prev_src in enumerate(sorted):
             s = sim(feat, features[prev_src])
             sims[(src, prev_src)] = sims[(prev_src, src)] = s
@@ -39,11 +41,20 @@ def sort(srcdir: str) -> list[str]:
                 max2_idx = max_idx
                 max_sim = s
                 max_idx = ii
+            elif max2_sim is None or s > max2_sim:
+                max2_sim = s
+                max2_idx = ii
+        assert max2_idx is not None
+        found = False
         step = 1 if max2_idx > max_idx else -1
-        for ii in range(max_idx + step, max2_idx, step):
-            if sims[(sorted[ii], )] < max_sim:
-                sorted.insert(ii, src)
+        max2_idx = 0 if step < 0 else len(sorted)
+        for ii in range(max_idx, max2_idx, step):
+            if sims[(sorted[ii], sorted[ii + step])] < sims[(sorted[ii], src)]:
+                sorted.insert((ii + step) if step > 0 else ii, src)
+                found = True
                 break
-        
+        if not found:
+            boz
+            sorted.insert(max2_idx, src)
     
     return sorted
