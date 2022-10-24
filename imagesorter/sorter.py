@@ -2,12 +2,19 @@ import torch
 import torch.nn as nn
 import os
 import os.path as op
-from imagesorter.resnet18_featurizer import Resnet18Featurizer as Featurizer
 
-def featurize(srcdir: str):
+def featurize(srcdir: str, featurizer:str):
     """Featurize all the images in the path
     """
-    featurizer = Featurizer().eval()
+    feat_name = None
+    if featurizer.startswith("vit_b_16"):
+        from imagesorter.vit_b_16_featurizer import ViTB16Featurizer as Featurizer
+        if featurizer == "vit_b_16:getitem_5":
+            feat_name = "getitem_5"
+    else:
+        assert featurizer == "resnet18"
+        from imagesorter.resnet18_featurizer import Resnet18Featurizer as Featurizer
+    featurizer = Featurizer(feat_name=feat_name).eval()
     features = {}
     with torch.no_grad():
         for path in [p for p in os.listdir(srcdir) if op.splitext(p)[1].lower() in [".jpg", ".png"]]:
@@ -15,10 +22,10 @@ def featurize(srcdir: str):
             features[path] = featurizer(path)
     return features
 
-def sort(srcdir: str) -> list[str]:
+def sort(srcdir: str, featurizer:str) -> list[str]:
     """Sort all the images in the path and return the sorted names
     """
-    features = featurize(srcdir)
+    features = featurize(srcdir, featurizer)
     sim = nn.CosineSimilarity(eps=1e-6, dim=0)
     sorted = []
     sims = {}
