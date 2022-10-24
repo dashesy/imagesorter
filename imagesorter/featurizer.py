@@ -3,7 +3,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 
 class Featurizer(nn.Module):
-    def __init__(self, size: int):
+    def __init__(self, size: int = 224):
         super().__init__()
         self.transform = transforms.Compose([
             transforms.Resize((size, size)),

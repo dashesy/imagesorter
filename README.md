@@ -10,6 +10,5 @@ python sort.py /path/to/input/directory /path/to/output/directory/
 To use different featurizer
 
 ```bash
-python sort.py /path/to/input/directory /path/to/output/directory/ --featurizer vit_b_16
+python sort.py /path/to/input/directory /path/to/output/directory/ --featurizer mobilenet
 ```
-
