@@ -28,6 +28,6 @@ if __name__ == "__main__":
     parser.add_argument('src', help='path to input directory of images to be sorted')
     parser.add_argument('dst', help='path to output directory to add sorted images')
     parser.add_argument('-s', '--short', action='store_true', help='only keep the short numerical names')
-    parser.add_argument('-f', '--featurizer', choices=['resnet18', 'vit_b_16', 'vit_b_16:getitem_5'], default='resnet18', help='image featurizer')
+    parser.add_argument('-f', '--featurizer', choices=['resnet18', 'vit_b_16', 'vit_b_16:getitem_5', 'mobilenet'], default='resnet18', help='image featurizer')
     args = parser.parse_args()
     main(args.src, args.dst, short=args.short, featurizer=args.featurizer)
