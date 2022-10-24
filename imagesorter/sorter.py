@@ -24,28 +24,44 @@ def featurize(srcdir: str, featurizer:str):
             features[path] = featurizer(path)
     return features
 
-def sort(srcdir: str, featurizer:str) -> list[str]:
-    """Sort all the images in the path and return the sorted names
+def get_sims(srcdir: str, featurizer:str):
+    """Find the similarities between all the pairs,
+    Also return the minimum pair
     """
     features = featurize(srcdir, featurizer)
     sim = nn.CosineSimilarity(eps=1e-6, dim=0)
-    sorted = []
+    srcs = list(features.keys())
     sims = {}
-    for src, feat in features.items():
-        if len(sorted) < 2:
-            # add the first two
-            sorted.append(src)
+    min_sim = None
+    min_key = None
+    for ii in range(len(srcs) - 1):
+        for jj in range(ii, len(srcs)):
+            s = sim(features[srcs[ii]], features[srcs[jj]])
+            sims[(ii, jj)] = sims[(jj, ii)] = s
+            if min_sim is None or s < min_sim:
+                min_sim = s
+                min_key = (ii, jj)
+    return sims, srcs, set(min_key)
+
+def sort(srcdir: str, featurizer:str) -> list[str]:
+    """Sort all the images in the path and return the sorted names
+    """
+    sims, srcs, min_key = get_sims(srcdir, featurizer)
+    sorted = []
+    # start with the least simmillar, so everything else is sorted accordingly
+    for k in min_key:
+        sorted.append(k)
+    for k in range(len(srcs)):
+        if k in min_key:
             continue
-        if len(sorted) == 2:
-            sims[(sorted[0], sorted[1])] = sims[(sorted[1], sorted[0])] = sim(features[sorted[0]], features[sorted[1]])
-        # got through previously sorted, and find the top-2 most similar
+        # got through previously sorted, and find the top-2 most similar to k
+        # that determines the direction to search where to place k
         max_sim = None
         max_idx = None
         max2_idx = None
         max2_sim = None
-        for ii, prev_src in enumerate(sorted):
-            s = sim(feat, features[prev_src])
-            sims[(src, prev_src)] = sims[(prev_src, src)] = s
+        for ii, prev_k in enumerate(sorted):
+            s = sims[(k, prev_k)]
             if max_sim is None or s > max_sim:
                 max2_idx = max_idx
                 max_sim = s
@@ -58,11 +74,11 @@ def sort(srcdir: str, featurizer:str) -> list[str]:
         step = 1 if max2_idx > max_idx else -1
         max2_idx = 0 if step < 0 else len(sorted) - 1
         for ii in range(max_idx, max2_idx, step):
-            if sims[(sorted[ii], sorted[ii + step])] < sims[(sorted[ii], src)]:
-                sorted.insert((ii + step) if step > 0 else ii, src)
+            if sims[(sorted[ii], sorted[ii + step])] < sims[(sorted[ii], k)]:
+                sorted.insert((ii + step) if step > 0 else ii, k)
                 found = True
                 break
         if not found:
-            sorted.insert(0 if step < 0 else len(sorted), src)
+            sorted.insert(0 if step < 0 else len(sorted), k)
     
-    return sorted
+    return [srcs[k] for k in sorted]
