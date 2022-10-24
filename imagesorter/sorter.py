@@ -13,6 +13,8 @@ def featurize(srcdir: str, featurizer:str):
             feat_name = "getitem_5"
     elif featurizer.startswith("mobilenet"):
         from imagesorter.mobilenet_v3_featurizer import MobileNetV3 as Featurizer
+    elif featurizer.startswith("mobilenet_resnet18"):
+        from imagesorter.mobilenet_resnet18_featurizer import MobileNetResNet18 as Featurizer
     else:
         assert featurizer == "resnet18"
         from imagesorter.resnet18_featurizer import Resnet18Featurizer as Featurizer
