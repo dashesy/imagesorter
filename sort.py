@@ -4,7 +4,7 @@ import argparse
 import shutil
 import imagesorter.sorter as sorter
 
-def main(srcdir: str, dstdir: str):
+def main(srcdir: str, dstdir: str, short=False):
     sorted = sorter.sort(srcdir)
     if not sorted:
         return
@@ -14,8 +14,11 @@ def main(srcdir: str, dstdir: str):
     with open(op.join(dstdir, "sorted.csv"), "w") as wfp:
         for ii in range(len(sorted)):
             src = sorted[ii]
-            ext = op.basename(src).rjust(max_src_length, "-")
-            dst = str(ii).rjust(length, '0') + "-"+ ext
+            if short:
+                ext = op.splitext(src)[1]
+            else:
+                ext = "-" + op.basename(src).rjust(max_src_length, "-")
+            dst = str(ii).rjust(length, '0') + ext
             print(f"{src},{dst}", file=wfp)
             shutil.copy(src, op.join(dstdir, dst))
     
@@ -24,5 +27,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Sort input images into output directory with numerical names')
     parser.add_argument('src', help='path to input directory of images to be sorted')
     parser.add_argument('dst', help='path to output directory to add sorted images')
+    parser.add_argument('-s', '--short', action='store_true', help='only keep the short numerical names')
     args = parser.parse_args()
-    main(args.src, args.dst)
+    main(args.src, args.dst, short=args.short)
