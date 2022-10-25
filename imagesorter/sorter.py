@@ -6,11 +6,15 @@ import os.path as op
 def featurize(srcdir: str, featurizer:str):
     """Featurize all the images in the path
     """
+    is_hybrid = False
     feat_name = None
     if featurizer.startswith("vit_b_16"):
         from imagesorter.vit_b_16_featurizer import ViTB16Featurizer as Featurizer
         if featurizer == "vit_b_16:getitem_5":
             feat_name = "getitem_5"
+    elif featurizer.startswith("mobilenet+resnet18"):
+        from imagesorter.mobilenet_resnet18_featurizer import MobileNetResNet18 as Featurizer
+        is_hybrid = True
     elif featurizer.startswith("mobilenet"):
         from imagesorter.mobilenet_v3_featurizer import MobileNetV3 as Featurizer
     else:
@@ -22,13 +26,13 @@ def featurize(srcdir: str, featurizer:str):
         for path in [p for p in os.listdir(srcdir) if op.splitext(p)[1].lower() in [".jpg", ".png"]]:
             path = op.join(srcdir, path)
             features[path] = featurizer(path)
-    return features
+    return features, is_hybrid
 
 def get_sims(srcdir: str, featurizer:str):
     """Find the similarities between all the pairs,
     Also return the minimum pair
     """
-    features = featurize(srcdir, featurizer)
+    features, is_hybrid = featurize(srcdir, featurizer)
     sim = nn.CosineSimilarity(eps=1e-6, dim=0)
     srcs = list(features.keys())
     sims = {}
@@ -36,10 +40,17 @@ def get_sims(srcdir: str, featurizer:str):
     min_key = None
     for ii in range(len(srcs) - 1):
         for jj in range(ii, len(srcs)):
-            s = sim(features[srcs[ii]], features[srcs[jj]])
+            fii = features[srcs[ii]]
+            fjj = features[srcs[jj]]
+            if is_hybrid:
+                s = [sim(f0, f1) for (f0, f1) in zip(fii, fjj)]
+                mins = min(s)
+                s = max(s)
+            else:
+                mins = s = sim(fii, fjj)
             sims[(ii, jj)] = sims[(jj, ii)] = s
-            if min_sim is None or s < min_sim:
-                min_sim = s
+            if min_sim is None or mins < min_sim:
+                min_sim = mins
                 min_key = (ii, jj)
     return sims, srcs, set(min_key)
 
