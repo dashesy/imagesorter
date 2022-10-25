@@ -3,7 +3,7 @@ from torchvision.models.feature_extraction import create_feature_extractor
 from imagesorter.featurizer import Featurizer
 
 class Resnet18Featurizer(Featurizer):
-    def __init__(self, size: int = 224, feat_name: str = None):
+    def __init__(self, feat_name: str = None, size: int = 224):
         super().__init__(size)
         model = models.resnet18(pretrained=True)
         self.feat_name = feat_name or "avgpool"
