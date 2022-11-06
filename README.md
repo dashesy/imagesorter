@@ -22,5 +22,6 @@ python sort.py /path/to/input/directory /path/to/output/directory/ --dedup 0.99
 
 # TODO
 
-Paralelize and cache to disk to handle large number of images. (Currently fine up to few hundreds)
+1. Paralelize and cache to disk to handle large number of images. (Currently fine up to few hundreds)
+2. Add option to minimize the cost function (max sum path) for maximum similarity sort. Can start from current sort as a good initial condition.
 
