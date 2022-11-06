@@ -3,9 +3,10 @@ import torch.nn as nn
 import os
 import os.path as op
 
-def featurize(srcdir: str, featurizer:str):
+def featurize(srcdir: str, featurizer:str=None):
     """Featurize all the images in the path
     """
+    featurizer = featurizer or "mobilenet+resnet18"
     is_hybrid = False
     feat_name = None
     if featurizer.startswith("vit_b_16"):
@@ -28,7 +29,7 @@ def featurize(srcdir: str, featurizer:str):
             features[path] = featurizer(path)
     return features, is_hybrid
 
-def get_sims(srcdir: str, featurizer:str):
+def get_sims(srcdir: str, featurizer:str=None):
     """Find the similarities between all the pairs,
     Also return the minimum pair
     """
@@ -54,7 +55,7 @@ def get_sims(srcdir: str, featurizer:str):
                 min_key = (ii, jj)
     return sims, srcs, set(min_key)
 
-def sort(srcdir: str, featurizer:str) -> list[str]:
+def sort(srcdir: str, featurizer:str=None) -> list[str]:
     """Sort all the images in the path and return the sorted names
     """
     sims, srcs, min_key = get_sims(srcdir, featurizer)
@@ -92,4 +93,4 @@ def sort(srcdir: str, featurizer:str) -> list[str]:
         if not found:
             sorted.insert(0 if step < 0 else len(sorted), k)
     
-    return [srcs[k] for k in sorted]
+    return [srcs[k] for k in sorted], [0.0 if ii == (len(sorted) - 1) else sims[sorted[ii], sorted[ii + 1]] for ii in range(len(sorted))]
