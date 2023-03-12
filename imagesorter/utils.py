@@ -19,7 +19,7 @@ def open_abplus(path):
     """What ab+ should do
     """
     try: 
-        fp = open(path, "ab+")
+        fp = open(path, "rb+")
         yield fp
     except FileNotFoundError:
         fp = open(path, "wb+")
@@ -88,7 +88,8 @@ def append_cache(fp: io.BufferedWriter, key: bytes, tensors: Union[torch.Tensor,
     tensors: shape, tensor
     """
     offset = fp.tell()
-    fp.write(b'\x00')
+    fp.write(b'\x00')  # first invalidate the record
+    assert len(key) == 44, "invalid key"
     fp.write(key)  # 44
     if isinstance(tensors, list):
         tensors = tuple(tensor)
@@ -107,5 +108,5 @@ def append_cache(fp: io.BufferedWriter, key: bytes, tensors: Union[torch.Tensor,
         fp.write(tensor.contiguous().numpy().tobytes())
     end_offset = fp.tell()
     fp.seek(offset, io.SEEK_SET)
-    fp.write(b'n')
+    fp.write(b'n')  # validate the record
     fp.seek(end_offset, io.SEEK_SET)
