@@ -3,7 +3,7 @@ import torch.nn as nn
 import os
 import os.path as op
 
-from imagesorter.utils import read_cache, get_key, append_cache
+from imagesorter.utils import read_cache, get_key, append_cache, open_abplus
     
 def featurize(srcdir: str, featurizer:str=None, cache=True):
     """Featurize all the images in the path
@@ -29,7 +29,7 @@ def featurize(srcdir: str, featurizer:str=None, cache=True):
         os.makedirs(op.dirname(cache_path), exist_ok=True)
     features = {}
     featurizer = Featurizer(feat_name=feat_name).eval()
-    with open(cache_path, "rb+") if cache else None as fp:
+    with open_abplus(cache_path) if cache else None as fp:
         if cache:
             cahced_features = read_cache(fp)
         for path in [p for p in os.listdir(srcdir) if op.splitext(p)[1].lower() in [".jpg", ".png", ".jpeg"]]:
