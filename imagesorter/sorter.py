@@ -3,7 +3,9 @@ import torch.nn as nn
 import os
 import os.path as op
 
-def featurize(srcdir: str, featurizer:str=None):
+from imagesorter.utils import read_cache, get_key, append_cache
+    
+def featurize(srcdir: str, featurizer:str=None, cache=True):
     """Featurize all the images in the path
     """
     featurizer = featurizer or "mobilenet+resnet18"
@@ -21,19 +23,39 @@ def featurize(srcdir: str, featurizer:str=None):
     else:
         assert featurizer == "resnet18"
         from imagesorter.resnet18_featurizer import Resnet18Featurizer as Featurizer
-    featurizer = Featurizer(feat_name=feat_name).eval()
+    featurizer = featurizer.replace("+", "_").replace(":", "_")
+    cache_path = op.join(srcdir, ".cache", featurizer + ".bin")
+    if cache:
+        os.makedirs(op.dirname(cache_path), exist_ok=True)
     features = {}
-    with torch.no_grad():
-        for path in [p for p in os.listdir(srcdir) if op.splitext(p)[1].lower() in [".jpg", ".png"]]:
+    featurizer = Featurizer(feat_name=feat_name).eval()
+    with open(cache_path, "rb+") if cache else None as fp:
+        if cache:
+            cahced_features = read_cache(fp)
+        for path in [p for p in os.listdir(srcdir) if op.splitext(p)[1].lower() in [".jpg", ".png", ".jpeg"]]:
+            key = None
+            if cache:
+                key = get_key(op.basename(path))
+                try:
+                    features[path] = cahced_features.pop(key)
+                    continue
+                except KeyError:
+                    pass
             path = op.join(srcdir, path)
-            features[path] = featurizer(path)
+            with torch.no_grad():
+                feat = featurizer(path)
+                features[path] = feat
+                if key:
+                    append_cache(fp, key, feat)
     return features, is_hybrid
 
-def get_sims(srcdir: str, featurizer:str=None):
+def get_sims(srcdir: str, featurizer:str=None, cache=True):
     """Find the similarities between all the pairs,
     Also return the minimum pair
     """
-    features, is_hybrid = featurize(srcdir, featurizer)
+    if cache:
+        os.makedirs(op.join(srcdir, ".cache"), exist_ok=True)
+    features, is_hybrid = featurize(srcdir, featurizer, cache=cache)
     sim = nn.CosineSimilarity(eps=1e-6, dim=0)
     srcs = list(features.keys())
     sims = {}
@@ -55,10 +77,10 @@ def get_sims(srcdir: str, featurizer:str=None):
                 min_key = (ii, jj)
     return sims, srcs, set(min_key)
 
-def sort(srcdir: str, featurizer:str=None) -> list[str]:
+def sort(srcdir: str, featurizer:str=None, cache=True) -> list[str]:
     """Sort all the images in the path and return the sorted names
     """
-    sims, srcs, min_key = get_sims(srcdir, featurizer)
+    sims, srcs, min_key = get_sims(srcdir, featurizer, cache=cache)
     sorted = []
     # start with the least simmillar, so everything else is sorted accordingly
     for k in min_key:
