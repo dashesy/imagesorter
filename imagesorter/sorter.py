@@ -5,10 +5,9 @@ import os.path as op
 
 from imagesorter.utils import read_cache, get_key, append_cache, open_abplus
     
-def featurize(srcdir: str, featurizer:str=None, cache=True):
+def featurize(srcdir: str, featurizer:str, cache=True):
     """Featurize all the images in the path
     """
-    featurizer = featurizer or "mobilenet+resnet18"
     is_hybrid = False
     feat_name = None
     if featurizer.startswith("vit_b_16"):
@@ -31,28 +30,30 @@ def featurize(srcdir: str, featurizer:str=None, cache=True):
     featurizer = Featurizer(feat_name=feat_name).eval()
     with open_abplus(cache_path) if cache else None as fp:
         if cache:
-            cahced_features = read_cache(fp)
+            cached = read_cache(fp)
         for path in [p for p in os.listdir(srcdir) if op.splitext(p)[1].lower() in [".jpg", ".png", ".jpeg"]]:
+            fname = op.basename(path)
             key = None
             if cache:
-                key = get_key(op.basename(path))
+                key = get_key(fname)
                 try:
-                    features[path] = cahced_features.pop(key)
+                    features[fname] = cached.pop(key)
                     continue
                 except KeyError:
                     pass
             path = op.join(srcdir, path)
             with torch.no_grad():
                 feat = featurizer(path)
-                features[path] = feat
+                features[fname] = feat
                 if key:
                     append_cache(fp, key, feat)
     return features, is_hybrid
 
-def get_sims(srcdir: str, featurizer:str=None, cache=True):
+def get_sims(srcdir: str, featurizer:str="mobilenet+resnet18", cache=True):
     """Find the similarities between all the pairs,
     Also return the minimum pair
     """
+    cache_path = op.join(srcdir, ".cache", featurizer + "_sim.bin")
     if cache:
         os.makedirs(op.join(srcdir, ".cache"), exist_ok=True)
     features, is_hybrid = featurize(srcdir, featurizer, cache=cache)
@@ -61,20 +62,32 @@ def get_sims(srcdir: str, featurizer:str=None, cache=True):
     sims = {}
     min_sim = None
     min_key = None
-    for ii in range(len(srcs) - 1):
-        for jj in range(ii, len(srcs)):
-            fii = features[srcs[ii]]
-            fjj = features[srcs[jj]]
-            if is_hybrid:
-                s = [sim(f0, f1) for (f0, f1) in zip(fii, fjj)]
-                mins = min(s)
-                s = max(s)
-            else:
-                mins = s = sim(fii, fjj)
-            sims[(ii, jj)] = sims[(jj, ii)] = s
-            if min_sim is None or mins < min_sim:
-                min_sim = mins
-                min_key = (ii, jj)
+    with open_abplus(cache_path) if cache else None as fp:
+        if cache:
+            cached = read_cache(fp)
+        for ii in range(len(srcs) - 1):
+            for jj in range(ii, len(srcs)):
+                key = mins = s = None
+                if cache:
+                    key = get_key([srcs[ii], srcs[jj]])
+                    s = cached.get(key)
+                    if s is not None:
+                        mins, s = s
+                if s is None:
+                    fii = features[srcs[ii]]
+                    fjj = features[srcs[jj]]
+                    if is_hybrid:
+                        s = [sim(f0, f1) for (f0, f1) in zip(fii, fjj)]
+                        mins = min(s)
+                        s = max(s)
+                    else:
+                        mins = s = sim(fii, fjj)
+                    if key:
+                        append_cache(fp, key, (mins, s))
+                sims[(ii, jj)] = sims[(jj, ii)] = s
+                if min_sim is None or mins < min_sim:
+                    min_sim = mins
+                    min_key = (ii, jj)
     return sims, srcs, set(min_key)
 
 def sort(srcdir: str, featurizer:str=None, cache=True) -> list[str]:
@@ -115,4 +128,5 @@ def sort(srcdir: str, featurizer:str=None, cache=True) -> list[str]:
         if not found:
             sorted.insert(0 if step < 0 else len(sorted), k)
     
-    return [srcs[k] for k in sorted], [0.0 if ii == (len(sorted) - 1) else sims[sorted[ii], sorted[ii + 1]] for ii in range(len(sorted))]
+    srcs = [op.join(srcdir, srcs[k]) for k in sorted]
+    return srcs, [0.0 if ii == (len(sorted) - 1) else sims[sorted[ii], sorted[ii + 1]] for ii in range(len(sorted))]

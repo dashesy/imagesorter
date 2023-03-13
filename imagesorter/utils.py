@@ -3,7 +3,7 @@ import torch
 import base64
 import hashlib
 from contextlib import contextmanager
-from typing import Dict,Tuple,Union
+from typing import Dict,Tuple,Union,List
 
 _DTYPE_INDEX_MAPPING = {
     torch.float32: 1,
@@ -27,8 +27,10 @@ def open_abplus(path):
     finally:
         fp.close()
 
-def get_key(path: str) -> bytes:
+def get_key(path: Union[str,List[str]]) -> bytes:
     """44 bytes key"""
+    if isinstance(path, list):
+        path = "&".join(sorted(path))
     return base64.b64encode(hashlib.sha256(path.encode()).digest())
  
 def read_cache(fp: io.BufferedRandom) -> Dict[str,Tuple[torch.Tensor]]:
